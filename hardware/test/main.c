@@ -11,11 +11,13 @@
 
 // Test Files
 #include "test_wifi.h"
+#include "test_camera.h"
 
 int runUnityTests(void)
 {
     UNITY_BEGIN();
     runWiFiTests();
+    runCameraTests();
 
     // add more test functions here
 

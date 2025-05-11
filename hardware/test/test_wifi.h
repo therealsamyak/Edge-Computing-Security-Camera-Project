@@ -4,9 +4,7 @@
 
 #include <WiFi.h>
 
-#include "test_wifi.h"
-
-/* your actual test cases */
+/* Test that WiFi connected */
 void test_wifi_connection(void)
 {
     wifi_init();
@@ -14,6 +12,7 @@ void test_wifi_connection(void)
     TEST_ASSERT_TRUE(is_wifi_connected());
 }
 
+/* Test that WiFi disconnected */
 void test_wifi_disconnection(void)
 {
     esp_wifi_disconnect();
@@ -22,6 +21,7 @@ void test_wifi_disconnection(void)
     TEST_ASSERT_FALSE(is_wifi_connected());
 }
 
+/* Run all WiFi tests */
 void runWiFiTests(void)
 {
     RUN_TEST(test_wifi_connection);
