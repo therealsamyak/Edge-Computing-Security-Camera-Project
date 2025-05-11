@@ -1,3 +1,5 @@
+#pragma once
+
 #include <esp_sntp.h>
 #include <esp_log.h>
 #include <time.h>
@@ -5,7 +7,7 @@
 
 #define TIME_TAG "TIME_SYNC"
 
-void sync_time()
+void sync_time(uint32_t interval_ms)
 {
 
     // Set the timezone to US Los Angeles (Pacific Time)
@@ -14,6 +16,13 @@ void sync_time()
 
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "pool.ntp.org"); // Use a global NTP server
+
+    // Override default interval if needed
+    if (interval_ms > 0)
+    {
+        esp_sntp_set_sync_interval(interval_ms);
+    }
+
     esp_sntp_init();
 
     // Wait for time to be set

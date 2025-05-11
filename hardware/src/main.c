@@ -1,19 +1,15 @@
 // ESP32 Libraries
 #include <esp_log.h>
-#include <esp_system.h>
 #include <nvs_flash.h>
-#include <sys/param.h>
-#include <string.h>
 
-// RTOS Libraries for task management
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+// RTOS Libraries
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
-// Include libraries for other peripherals
+// Custom Libraries
 #include "WiFi.h"
 #include "TimeSync.h"
 
-// Main tag for logging
 static const char *MAIN_TAG = "MAIN";
 
 void app_main()
@@ -35,24 +31,33 @@ void app_main()
     }
     ESP_ERROR_CHECK(ret);
 
-    //  Initialize WiFi
+    // Initialize WiFi
     ESP_LOGI(MAIN_TAG, "Initializing Wi-Fi...");
     wifi_init();
 
     vTaskDelay(5000 / portTICK_PERIOD_MS);
-    ESP_LOGI(MAIN_TAG, "Wi-Fi setup complete!");
+
+    if (is_wifi_connected())
+    {
+        ESP_LOGI(MAIN_TAG, "Wi-Fi setup complete!");
+    }
+    else
+    {
+        ESP_LOGE(MAIN_TAG, "Wi-Fi setup error. Check configurations...");
+    }
+
+    // Sync Time
+    ESP_LOGI(MAIN_TAG, "Getting Current Time...");
+    sync_time(0);
+
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+    ESP_LOGI(MAIN_TAG, "Time Synced!");
 
     // Loop For State Machine
     while (1)
     {
-        // Sync Time
-        ESP_LOGI(MAIN_TAG, "Getting Current Time...");
-        sync_time();
-
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-        ESP_LOGI(MAIN_TAG, "Time Synced!");
-
-        // iterate every 15 minutes
+        // iterate every 10s
+        ESP_LOGI(MAIN_TAG, "Placeholder...");
         vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
 
