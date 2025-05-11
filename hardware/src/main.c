@@ -1,1 +1,60 @@
-void app_main() {}
+// ESP32 Libraries
+#include <esp_log.h>
+#include <esp_system.h>
+#include <nvs_flash.h>
+#include <sys/param.h>
+#include <string.h>
+
+// RTOS Libraries for task management
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// Include libraries for other peripherals
+#include "WiFi.h"
+#include "TimeSync.h"
+
+// Main tag for logging
+static const char *MAIN_TAG = "MAIN";
+
+void app_main()
+{
+    // Log program Starting
+    ESP_LOGI(MAIN_TAG, "Starting ESP32 Application...");
+
+    //
+    //  Initialize Everything
+    //
+
+    // checkf falsh
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_LOGW(MAIN_TAG, "NVS Flash Full. Erasing...");
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    //  Initialize WiFi
+    ESP_LOGI(MAIN_TAG, "Initializing Wi-Fi...");
+    wifi_init();
+
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+    ESP_LOGI(MAIN_TAG, "Wi-Fi setup complete!");
+
+    // Loop For State Machine
+    while (1)
+    {
+        // Sync Time
+        ESP_LOGI(MAIN_TAG, "Getting Current Time...");
+        sync_time();
+
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        ESP_LOGI(MAIN_TAG, "Time Synced!");
+
+        // iterate every 15 minutes
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+    }
+
+    ESP_LOGI(MAIN_TAG, "All tests completed.");
+}
