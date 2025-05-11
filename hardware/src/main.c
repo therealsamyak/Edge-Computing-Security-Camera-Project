@@ -1,65 +1,44 @@
-// ESP32 Libraries
-#include <esp_log.h>
+// ESP32 core
 #include <nvs_flash.h>
+#include <esp_log.h>
 
-// RTOS Libraries
+// RTOS
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-// Custom Libraries
+// User-Defined
 #include <WiFi.h>
+#include <Camera_Server.h>
 #include "TimeSync.h"
 
-static const char *MAIN_TAG = "MAIN";
+static const char *TAG = "MAIN";
 
-void app_main()
+void app_main(void)
 {
-    // Log program Starting
-    ESP_LOGI(MAIN_TAG, "Starting ESP32 Application...");
 
-    //
-    //  Initialize Everything
-    //
-
-    // check flash
     esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
+        ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
-        ESP_LOGW(MAIN_TAG, "NVS Flash Full. Erasing...");
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
 
     // Initialize WiFi
-    ESP_LOGI(MAIN_TAG, "Initializing Wi-Fi...");
     wifi_init();
-
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-
-    if (is_wifi_connected())
-    {
-        ESP_LOGI(MAIN_TAG, "Wi-Fi setup complete!");
-    }
-    else
-    {
-        ESP_LOGE(MAIN_TAG, "Wi-Fi setup error. Check configurations...");
-    }
+    ESP_LOGI(TAG, "Wi-Fi connected");
 
     // Sync Time
-    ESP_LOGI(MAIN_TAG, "Getting Current Time...");
     sync_time(0);
+    ESP_LOGI(TAG, "Time synchronized");
 
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-    ESP_LOGI(MAIN_TAG, "Time Synced!");
+    // Camera Server
+    startCameraServer();
 
-    // Loop For State Machine
+    // Idle
     while (1)
     {
-        // iterate every 10s
-        ESP_LOGI(MAIN_TAG, "Placeholder...");
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(10000));
     }
-
-    ESP_LOGI(MAIN_TAG, "All tests completed.");
 }
