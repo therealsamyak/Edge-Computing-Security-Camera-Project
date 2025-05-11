@@ -7,7 +7,7 @@
 #include <freertos/task.h>
 
 // Custom Libraries
-#include "WiFi.h"
+#include <WiFi.h>
 #include "TimeSync.h"
 
 static const char *MAIN_TAG = "MAIN";
@@ -21,7 +21,7 @@ void app_main()
     //  Initialize Everything
     //
 
-    // checkf falsh
+    // check flash
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
