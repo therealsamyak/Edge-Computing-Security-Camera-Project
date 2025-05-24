@@ -1,9 +1,6 @@
 #pragma once
 
 #include <unity.h>
-#include <esp_camera.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 
 #include "Camera_Server.h"
 

@@ -1,10 +1,6 @@
 // ESP32 Libraries
 #include <nvs_flash.h>
 
-// RTOS Libraries
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-
 // Unity (Testing)
 #include <unity.h>
 #define LOG_LOCAL_LEVEL ESP_LOG_WARN

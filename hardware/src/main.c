@@ -2,13 +2,9 @@
 #include <nvs_flash.h>
 #include <esp_log.h>
 
-// RTOS
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-
 // User-Defined
-#include <WiFi.h>
-#include <Camera_Server.h>
+#include "WiFi.h"
+#include "Camera_Server.h"
 #include "TimeSync.h"
 
 static const char *TAG = "MAIN";

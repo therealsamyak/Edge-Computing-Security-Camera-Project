@@ -1,18 +1,13 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#include <esp_camera.h>
+#include <esp_http_server.h>
+#include <esp_log.h>
+#include <esp_netif.h>
+#include <string.h>
+#include <freertos/task.h>
 
-/** the multipart boundary string used in MJPEG stream headers */
 #define STREAM_BOUNDARY "boundary"
+#define STREAM_TAG "camera_httpd"
 
-    /**
-     * @brief  Initialize camera hardware and start HTTP MJPEG stream on port 80.
-     */
-    void startCameraServer(void);
-
-#ifdef __cplusplus
-}
-#endif
+void startCameraServer(void);

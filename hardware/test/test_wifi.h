@@ -2,7 +2,7 @@
 
 #include <unity.h>
 
-#include <WiFi.h>
+#include "WiFi.h"
 
 /* Test that WiFi connected */
 void test_wifi_connection(void)

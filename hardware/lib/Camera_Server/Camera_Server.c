@@ -1,16 +1,5 @@
 #include "Camera_Server.h"
-#include <esp_camera.h>
-#include <esp_http_server.h>
-#include <esp_log.h>
-#include <string.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 
-static const char *TAG = "camera_httpd";
-
-// ----------------------------------------------------------------------------
-// HTTP “/mjpg/video.mjpg” handler — streams multipart JPEG frames
-// ----------------------------------------------------------------------------
 static esp_err_t stream_handler(httpd_req_t *req)
 {
     camera_fb_t *fb = NULL;
@@ -33,7 +22,7 @@ static esp_err_t stream_handler(httpd_req_t *req)
         fb = esp_camera_fb_get();
         if (!fb)
         {
-            ESP_LOGE(TAG, "Camera capture failed");
+            ESP_LOGE(STREAM_TAG, "Camera capture failed");
             break;
         }
 
@@ -45,7 +34,7 @@ static esp_err_t stream_handler(httpd_req_t *req)
             esp_camera_fb_return(fb);
             if (!ok)
             {
-                ESP_LOGE(TAG, "JPEG conversion failed");
+                ESP_LOGE(STREAM_TAG, "JPEG conversion failed");
                 break;
             }
         }
@@ -92,13 +81,9 @@ static esp_err_t stream_handler(httpd_req_t *req)
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    // end the multipart stream cleanly
     return ESP_OK;
 }
 
-// ----------------------------------------------------------------------------
-// HTTP “/” handler — simple HTML page embedding the MJPEG stream
-// ----------------------------------------------------------------------------
 static esp_err_t index_handler(httpd_req_t *req)
 {
     const char *html =
@@ -153,7 +138,7 @@ void startCameraServer(void)
 
     if (esp_camera_init(&config) != ESP_OK)
     {
-        ESP_LOGE(TAG, "Camera init failed");
+        ESP_LOGE(STREAM_TAG, "Camera init failed");
         return;
     }
 
@@ -164,10 +149,24 @@ void startCameraServer(void)
     {
         httpd_register_uri_handler(server, &uri_index);
         httpd_register_uri_handler(server, &uri_stream);
-        ESP_LOGI(TAG, "Camera server started on port %d", http_conf.server_port);
+
+        esp_netif_ip_info_t ip;
+        esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+        if (netif && esp_netif_get_ip_info(netif, &ip) == ESP_OK)
+        {
+            ESP_LOGI(STREAM_TAG,
+                     "Broadcasting at " IPSTR "/mjpg/video.mjpg",
+                     IP2STR(&ip.ip));
+        }
+        else
+        {
+            ESP_LOGW(STREAM_TAG, "Broadcasting (IP unknown) /mjpg/video.mjpg");
+        }
+        
+        ESP_LOGI(STREAM_TAG, "Camera server started on port %d", http_conf.server_port);
     }
     else
     {
-        ESP_LOGE(TAG, "Failed to start HTTP server");
+        ESP_LOGE(STREAM_TAG, "Failed to start HTTP server");
     }
 }
