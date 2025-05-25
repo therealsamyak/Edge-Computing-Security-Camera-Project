@@ -26,8 +26,8 @@ void app_main(void)
     ESP_LOGI(TAG, "Wi-Fi connected");
 
     // Sync Time
-    ret = sync_time(0);
-    ESP_ERROR_CHECK(ret);
+    sync_time(0);
+    ESP_LOGI(TAG, "Time synchronized");
 
     // Camera Server
     startCameraServer();
