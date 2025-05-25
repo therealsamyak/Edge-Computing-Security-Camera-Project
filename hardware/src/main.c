@@ -26,7 +26,6 @@ void app_main(void)
 
     // Sync Time
     sync_time(0);
-    ESP_LOGI(TAG, "Time synchronized!");
 
     // Camera Server
     startCameraServer();
