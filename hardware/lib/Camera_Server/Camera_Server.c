@@ -75,10 +75,17 @@ static esp_err_t stream_handler(httpd_req_t *req)
         }
 
         // return buffer for next frame
-        esp_camera_fb_return(fb);
+        if (fb->format != PIXFORMAT_JPEG)
+        {
+            free(jpg_buf);
+        }
+        else
+        {
+            esp_camera_fb_return(fb);
+        }
 
         // throttle
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(5);
     }
 
     return ESP_OK;
@@ -89,7 +96,7 @@ static esp_err_t index_handler(httpd_req_t *req)
     const char *html =
         "<!DOCTYPE html><html><head><title>ESP32-CAM</title></head>"
         "<body><h1>ESP32-CAM MJPEG Stream</h1>"
-        "<img src=\"/mjpg/video.mjpg\" />"
+        "<img src=\"/mjpg/video.mjpg\" style=\"max-width:100%; height:auto;\" />"
         "</body></html>";
     httpd_resp_set_type(req, "text/html");
     return httpd_resp_send(req, html, strlen(html));
@@ -130,9 +137,9 @@ void startCameraServer(void)
         .ledc_timer = LEDC_TIMER_0,
         .ledc_channel = LEDC_CHANNEL_0,
         .pixel_format = PIXFORMAT_JPEG,
-        .frame_size = FRAMESIZE_VGA,
-        .jpeg_quality = 10,
-        .fb_count = 1,
+        .frame_size = 8,
+        .jpeg_quality = 20,
+        .fb_count = 3,
         .grab_mode = CAMERA_GRAB_LATEST,
         .fb_location = CAMERA_FB_IN_DRAM};
 
@@ -145,6 +152,13 @@ void startCameraServer(void)
     httpd_handle_t server = NULL;
     httpd_config_t http_conf = HTTPD_DEFAULT_CONFIG();
     http_conf.server_port = 80;
+    http_conf.max_uri_handlers = 8;
+    http_conf.max_resp_headers = 8;
+    http_conf.send_wait_timeout = 5;
+    http_conf.recv_wait_timeout = 5;
+    http_conf.task_priority = 5;
+    http_conf.stack_size = 8192;
+
     if (httpd_start(&server, &http_conf) == ESP_OK)
     {
         httpd_register_uri_handler(server, &uri_index);
@@ -162,7 +176,7 @@ void startCameraServer(void)
         {
             ESP_LOGW(STREAM_TAG, "Broadcasting (IP unknown) /mjpg/video.mjpg");
         }
-        
+
         ESP_LOGI(STREAM_TAG, "Camera server started on port %d", http_conf.server_port);
     }
     else
