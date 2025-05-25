@@ -23,11 +23,10 @@ void app_main(void)
 
     // Initialize WiFi
     wifi_init();
-    ESP_LOGI(TAG, "Wi-Fi connected");
 
     // Sync Time
     sync_time(0);
-    ESP_LOGI(TAG, "Time synchronized");
+    ESP_LOGI(TAG, "Time synchronized!");
 
     // Camera Server
     startCameraServer();
