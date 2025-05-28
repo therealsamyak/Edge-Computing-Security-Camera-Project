@@ -45,6 +45,6 @@ void sync_time(uint32_t interval_ms)
     }
     else
     {
-        ESP_LOGI(TIME_TAG, "Time synchronized: %s", asctime(&timeinfo));
+        ESP_LOGI(TIME_TAG, "Time synchronized!\nCurrent Time: %s", asctime(&timeinfo));
     }
 }
