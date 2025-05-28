@@ -8,13 +8,23 @@ Read [https://docs.google.com/document/d/12N0_DUncdrwM2o6IFXWKLukxhMFFXXNmXrfzfe
 cd hardware
 ```
 
-We used PlatformIO for hardware implementations. The camera server runs at [http://192.168.137.184/](http://192.168.137.184/) when it is online.
+We used PlatformIO for hardware implementations. The serial monitor outputs the streaming link for the server.
 
 - Note: You have to be connected to the same WiFi network as the camera to view the stream.
 
 ## Backend
 
-testing1
+USE LINUX OR WSL TO RUN THIS. DOCKER NEEDS TO BE INSTALLED.
+
+- ON WINDOWS, MAKE SURE DOCKER DESKTOP IS RUNNING IN THE BACKGROUND.
+
+<br/>
+
+```shell
+cd backend
+docker build -t security-backend .
+docker run --rm -it security-backend
+```
 
 ## Frontend
 
