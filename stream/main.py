@@ -3,7 +3,7 @@ import cv2
 # http://webcam01.ecn.purdue.edu/mjpg/video.mjpg
 # http://honjin1.miemasu.net/nphMotionJpeg?Resolution=640x480&Quality=Standard
 # http://67.53.46.161:65123/mjpg/video.mjpg
-url = "http://honjin1.miemasu.net/nphMotionJpeg?Resolution=640x480&Quality=Standard"
+url = "http://192.168.137.138/mjpg/video.mjpg"
 
 cap = cv2.VideoCapture(url)
 
