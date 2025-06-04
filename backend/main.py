@@ -31,12 +31,14 @@ def get_next_unknown_id():
 # Determine video source (default=0 for webcam)
 if len(sys.argv) > 1:
     video_source = sys.argv[1]
-    location_label = "entrance/exit"
+    location_label = "checkout"
+    
     if (video_source) == "usb":
+        location_label = "entrance/exit"
         video_source = 1
 else:
     video_source = 0
-    location_label = "checkout"
+    location_label = "entrance/exit"
 
 # Start capture
 video_capture = cv2.VideoCapture(video_source)
