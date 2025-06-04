@@ -12,13 +12,13 @@ key = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
 # Insert test legitimate customer
-response = supabase.table("security_system").insert({"id": "person2", "location": "entrance/exit"}).execute()
-response = supabase.table("security_system").insert({"id": "person2", "location": "checkout"}).execute()
-response = supabase.table("security_system").insert({"id": "person2", "location": "entrance/exit"}).execute()
+response = supabase.table("security_system").insert({"id": "person1", "location": "entrance/exit"}).execute()
+response = supabase.table("security_system").insert({"id": "person1", "location": "checkout"}).execute()
+response = supabase.table("security_system").insert({"id": "person1", "location": "entrance/exit"}).execute()
 
 # Insert test suspicious customer
-response = supabase.table("security_system").insert({"id": "person3", "location": "entrance/exit"}).execute()
-response = supabase.table("security_system").insert({"id": "person3", "location": "entrance/exit"}).execute()
+response = supabase.table("security_system").insert({"id": "person2", "location": "entrance/exit"}).execute()
+response = supabase.table("security_system").insert({"id": "person2", "location": "entrance/exit"}).execute()
 
 sus_list = []
 
