@@ -59,7 +59,7 @@ print("✅ Video capture running. Press 'q' to quit.")
 face_locations = []
 face_encodings = []
 face_names = []
-process_this_frame = True
+process_this_frame = 0
 
 while True:
     ret, frame = video_capture.read()
@@ -71,7 +71,8 @@ while True:
     small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
     rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-    if process_this_frame:
+    if process_this_frame >= 30:
+        process_this_frame = 0
         face_locations = face_recognition.face_locations(rgb_small_frame)
         face_encodings = face_recognition.face_encodings(
             rgb_small_frame, face_locations
@@ -115,7 +116,7 @@ while True:
 
             face_names.append(name)
 
-    process_this_frame = not process_this_frame
+    process_this_frame += 1
 
     # For each recognized face, insert a record into Supabase
     for name in face_names:
