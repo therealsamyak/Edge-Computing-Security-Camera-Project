@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 import cv2
 import face_recognition
@@ -61,6 +62,8 @@ face_encodings = []
 face_names = []
 process_this_frame = 0
 
+last_supabase_insert = 0  # timestamp of last Supabase update (in seconds)
+
 while True:
     ret, frame = video_capture.read()
     if not ret:
@@ -116,47 +119,48 @@ while True:
 
             face_names.append(name)
 
+        # ───────────────────────────────────────────────────────────────
+        # Insert into Supabase only when faces are detected and cooldown has elapsed
+        current_time = time.time()
+        if face_names and (current_time - last_supabase_insert >= 10):
+            last_supabase_insert = current_time
+            for name in face_names:
+                if name.startswith("Unknown"):
+                    person_id = name.lower().replace("unknown #", "unknown_")
+                else:
+                    person_id = name.split()[-1].lower()
+
+                data = {"id": person_id, "location": location_label}
+                try:
+                    supabase.table("security_system").insert(data).execute()
+                except Exception as e:
+                    print(f"⚠️ Supabase insert failed for {person_id}: {e}")
+        # ───────────────────────────────────────────────────────────────
+
     process_this_frame += 1
 
-    # For each recognized face, insert a record into Supabase
-    for name in face_names:
-        # Derive the ID field
-        if name.startswith("Unknown"):
-            # "Unknown #1" -> "unknown_1"
-            person_id = name.lower().replace("unknown #", "unknown_")
-        else:
-            # Known names like "Joe Biden" -> use last name, lowercase
-            person_id = name.split()[-1].lower()
-
-        # Insert into "security_system" table
-        data = {"id": person_id, "location": location_label}
-        try:
-            supabase.table("security_system").insert(data).execute()
-        except Exception as e:
-            print(f"⚠️ Supabase insert failed for {person_id}: {e}")
-
     # Draw boxes and labels on the original frame
-    # for (top, right, bottom, left), name in zip(face_locations, face_names):
-    #     top *= 4
-    #     right *= 4
-    #     bottom *= 4
-    #     left *= 4
+    for (top, right, bottom, left), name in zip(face_locations, face_names):
+        top *= 4
+        right *= 4
+        bottom *= 4
+        left *= 4
 
-    #     cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-    #     cv2.rectangle(
-    #         frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED
-    #     )
-    #     cv2.putText(
-    #         frame,
-    #         name,
-    #         (left + 6, bottom - 6),
-    #         cv2.FONT_HERSHEY_DUPLEX,
-    #         0.75,
-    #         (255, 255, 255),
-    #         1,
-    #     )
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+        cv2.rectangle(
+            frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED
+        )
+        cv2.putText(
+            frame,
+            name,
+            (left + 6, bottom - 6),
+            cv2.FONT_HERSHEY_DUPLEX,
+            0.75,
+            (255, 255, 255),
+            1,
+        )
 
-    # cv2.imshow("Face Recognition", frame)
+    cv2.imshow("Face Recognition", frame)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
