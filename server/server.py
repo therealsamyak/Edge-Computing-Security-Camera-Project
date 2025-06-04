@@ -1,19 +1,34 @@
 import argparse
 import os
 import time
-from itertools import groupby
+from collections import defaultdict
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from supabase import Client, create_client
 
 
 def insert_test_data(supabase: Client):
+    # Delete any leftover data
+    supabase.table("security_system").delete().neq(
+        "id", None
+    ).execute()
+
     # Insert test legitimate customer
     supabase.table("security_system").insert(
         {"id": "person1", "location": "entrance/exit"}
     ).execute()
     supabase.table("security_system").insert(
+        {"id": "person1", "location": "entrance/exit"}
+    ).execute()
+    supabase.table("security_system").insert(
         {"id": "person1", "location": "checkout"}
+    ).execute()
+    supabase.table("security_system").insert(
+        {"id": "person1", "location": "checkout"}
+    ).execute()
+    supabase.table("security_system").insert(
+        {"id": "person1", "location": "entrance/exit"}
     ).execute()
     supabase.table("security_system").insert(
         {"id": "person1", "location": "entrance/exit"}
@@ -26,9 +41,36 @@ def insert_test_data(supabase: Client):
     supabase.table("security_system").insert(
         {"id": "person2", "location": "entrance/exit"}
     ).execute()
+    time.sleep(15)
+    supabase.table("security_system").insert(
+        {"id": "person2", "location": "entrance/exit"}
+    ).execute()
+    supabase.table("security_system").insert(
+        {"id": "person2", "location": "entrance/exit"}
+    ).execute()
 
-    print("Inserted test customers!")
-    print()
+    print("\nInserted test customers!\n")
+
+
+def group_by_time_proximity(group_list, time_key="timestamp", threshold_seconds=15):
+    groups = []
+    stored_entry = None
+
+    for entry in group_list:
+        entry_time = datetime.fromisoformat(entry.get(time_key))
+        
+        if not stored_entry:
+            stored_entry = entry
+        else:
+            prev_time = datetime.fromisoformat(stored_entry.get(time_key))
+            if (stored_entry.get("location") != entry.get("location")) or (entry_time - prev_time) > timedelta(seconds=threshold_seconds):
+                groups.append(stored_entry)
+                stored_entry = entry
+
+    if stored_entry:
+        groups.append(stored_entry)
+    
+    return groups
 
 
 def run_server(supabase: Client):
@@ -41,43 +83,43 @@ def run_server(supabase: Client):
             print("\nCurrent Data:", table)
             print()
 
-            table.sort(key=lambda x: x["id"])
-            for person, group in groupby(table, key=lambda x: x["id"]):
-                group_list = list(group)
-
-                if len(group_list) > 3:
-                    print(f"ERROR ({person}): Seen in cameras more than 3 times")
-                else:
-                    first_loc = group_list[0]["location"]
-                    if first_loc == "entrance/exit":
-                        if (
-                            len(group_list) == 2
-                            and group_list[1]["location"] == "entrance/exit"
-                        ):
-                            print(f"FLAGGED ({person}): Suspicious customer")
-                            supabase.table("security_system").delete().eq(
-                                "id", person
-                            ).execute()
-                            sus_list.append(
-                                (
-                                    person,
-                                    group_list[0].get("timestamp"),
-                                    group_list[1].get("timestamp"),
-                                )
+            grouped = defaultdict(list)
+            for row in table:
+                if "id" in row:
+                    grouped[row["id"]].append(row)
+            for person, group_list in grouped.items():
+                group_list = group_by_time_proximity(group_list)
+                first_loc = group_list[0].get("location")
+                if first_loc == "entrance/exit":
+                    checkout_loc = any(element.get("location") == "checkout" for element in group_list)
+                    if (
+                        not checkout_loc
+                        and group_list[-1].get("location") == "entrance/exit"
+                        and len(group_list) > 1
+                    ):
+                        print(f"FLAGGED ({person}): Suspicious customer")
+                        supabase.table("security_system").delete().eq(
+                            "id", person
+                        ).execute()
+                        sus_list.append(
+                            (
+                                person,
+                                group_list[0].get("timestamp"),
+                                group_list[-1].get("timestamp"),
                             )
-                        elif (
-                            len(group_list) == 3
-                            and group_list[1]["location"] == "checkout"
-                            and group_list[2]["location"] == "entrance/exit"
-                        ):
-                            print(f"SUCCESS ({person}): Legitimate customer")
-                            supabase.table("security_system").delete().eq(
-                                "id", person
-                            ).execute()
-                    else:
-                        print(
-                            f"ERROR ({person}): Seen in store but not at entrance/exit"
                         )
+                    elif (
+                        checkout_loc
+                        and group_list[-1].get("location") == "entrance/exit"
+                    ):
+                        print(f"SUCCESS ({person}): Legitimate customer")
+                        supabase.table("security_system").delete().eq(
+                            "id", person
+                        ).execute()
+                else:
+                    print(
+                        f"ERROR ({person}): Seen in store but not at entrance/exit"
+                    )
 
             time.sleep(5)
 
