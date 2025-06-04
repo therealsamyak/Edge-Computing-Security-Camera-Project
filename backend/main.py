@@ -32,6 +32,8 @@ def get_next_unknown_id():
 if len(sys.argv) > 1:
     video_source = sys.argv[1]
     location_label = "entrance/exit"
+    if (video_source) == "usb":
+        video_source = 1
 else:
     video_source = 0
     location_label = "checkout"
