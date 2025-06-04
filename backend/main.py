@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import re
 
 import cv2
 import face_recognition
@@ -14,9 +15,18 @@ url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
+def get_next_unknown_id():
+    """Finds the next available unknown_<index>.png in the current directory"""
+    used_indices = set()
+    for fname in os.listdir():
+        match = re.match(r"unknown_(\d+)\.png", fname)
+        if match:
+            used_indices.add(int(match.group(1)))
 
-# Create folder for unknown faces if it doesn't exist
-os.makedirs("unknown_faces", exist_ok=True)
+    i = 1
+    while i in used_indices:
+        i += 1
+    return f"unknown_{i}"
 
 # Determine video source (default=0 for webcam)
 if len(sys.argv) > 1:
@@ -32,28 +42,22 @@ if not video_capture.isOpened():
     print(f"❌ Could not access video source: {video_source}")
     sys.exit(1)
 
-# Load and encode known faces
-known_faces = [
-    ("Barack Obama", "obama.jpg"),
-    ("Joe Biden", "biden.jpg"),
-]
+# Load known faces (optional static list can be commented out if unused)
+known_faces = []
 
 known_face_encodings = []
 known_face_names = []
 
-for name, filename in known_faces:
-    image = face_recognition.load_image_file(filename)
-    encodings = face_recognition.face_encodings(image)
-    if encodings:
-        known_face_encodings.append(encodings[0])
-        known_face_names.append(name)
-    else:
-        print(f"⚠️ Warning: No face found in {filename}")
-
-# Track unknowns
-unknown_encodings = []
-unknown_names = []
-unknown_id_counter = 1
+# Load previously saved unknown_X.png files as known faces
+for fname in os.listdir():
+    if re.match(r"unknown_\d+\.png", fname):
+        image = face_recognition.load_image_file(fname)
+        encodings = face_recognition.face_encodings(image)
+        if encodings:
+            known_face_encodings.append(encodings[0])
+            known_face_names.append(fname.replace(".png", ""))
+        else:
+            print(f"⚠️ Warning: No face found in {fname}")
 
 print("✅ Video capture running. Press 'q' to quit.")
 
@@ -61,8 +65,7 @@ face_locations = []
 face_encodings = []
 face_names = []
 process_this_frame = 0
-
-last_supabase_insert = 0  # timestamp of last Supabase update (in seconds)
+last_supabase_insert = 0
 
 while True:
     ret, frame = video_capture.read()
@@ -77,88 +80,84 @@ while True:
     if process_this_frame >= 60:
         process_this_frame = 0
         face_locations = face_recognition.face_locations(rgb_small_frame)
-        face_encodings = face_recognition.face_encodings(
-            rgb_small_frame, face_locations
-        )
+        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+
         face_names = []
+        for face_encoding, (top, right, bottom, left) in zip(face_encodings, face_locations):
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
 
-        for i, face_encoding in enumerate(face_encodings):
-            # Compare against known + previously seen unknowns
-            all_encodings = known_face_encodings + unknown_encodings
-            matches = face_recognition.compare_faces(all_encodings, face_encoding)
             name = "Unknown"
-
-            face_distances = face_recognition.face_distance(
-                all_encodings, face_encoding
-            )
             if len(face_distances) > 0:
                 best_match_index = np.argmin(face_distances)
-                if matches[best_match_index]:
-                    if best_match_index < len(known_face_names):
-                        name = known_face_names[best_match_index]
-                    else:
-                        name = unknown_names[best_match_index - len(known_face_names)]
+                if matches[best_match_index] and face_distances[best_match_index] < 0.45:
+                    name = known_face_names[best_match_index]
 
-            # If still unknown, save a new face crop and encoding
             if name == "Unknown":
-                top, right, bottom, left = face_locations[i]
-                top *= 4
-                right *= 4
-                bottom *= 4
-                left *= 4
+                already_known = False
+                for known_encoding in known_face_encodings:
+                    if np.linalg.norm(known_encoding - face_encoding) < 0.4:
+                        already_known = True
+                        break
 
-                face_crop = frame[top:bottom, left : left + (right - left)]
-                filename = f"unknown_faces/unknown_{unknown_id_counter}.jpg"
-                cv2.imwrite(filename, face_crop)
+                if not already_known:
+                    # Assign new filename
+                    new_unknown_name = get_next_unknown_id()
+                    filename = f"{new_unknown_name}.png"
 
-                unknown_encodings.append(face_encoding)
-                new_unknown_label = f"Unknown #{unknown_id_counter}"
-                unknown_names.append(new_unknown_label)
-                name = new_unknown_label
-                unknown_id_counter += 1
+                    # Convert original coords
+                    top *= 4
+                    right *= 4
+                    bottom *= 4
+                    left *= 4
+                    face_image = frame[top:bottom, left:right]
+
+                    # Save image to disk
+                    cv2.imwrite(filename, face_image)
+
+                    # Add to known encodings
+                    known_face_encodings.append(face_encoding)
+                    known_face_names.append(new_unknown_name)
+                    name = new_unknown_name
+                    print(f"[+] Saved new unknown face as {filename}")
+            else:
+                # NEW: update image of known face
+                matched_name = name
+                matched_filename = f"{matched_name}.png"
+                top_full, right_full, bottom_full, left_full = top * 4, right * 4, bottom * 4, left * 4
+                face_image = frame[top_full:bottom_full, left_full:right_full]
+                cv2.imwrite(matched_filename, face_image)
+                print(f"[✓] Updated snapshot for {matched_name}")
 
             face_names.append(name)
 
-        # ───────────────────────────────────────────────────────────────
-        # Insert into Supabase only when faces are detected and cooldown has elapsed
+        # Insert to Supabase with cooldown
         current_time = time.time()
         if face_names and (current_time - last_supabase_insert >= 10):
             last_supabase_insert = current_time
             for name in face_names:
-                if name.startswith("Unknown"):
-                    person_id = name.lower().replace("unknown #", "unknown_")
+                if name.startswith("unknown_"):
+                    person_id = name
                 else:
                     person_id = name.split()[-1].lower()
-
                 data = {"id": person_id, "location": location_label}
                 try:
                     supabase.table("security_system").insert(data).execute()
                 except Exception as e:
                     print(f"⚠️ Supabase insert failed for {person_id}: {e}")
-        # ───────────────────────────────────────────────────────────────
 
     process_this_frame += 1
 
-    # Draw boxes and labels on the original frame
+    # Draw boxes and labels
     for (top, right, bottom, left), name in zip(face_locations, face_names):
         top *= 4
         right *= 4
         bottom *= 4
         left *= 4
-
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-        cv2.rectangle(
-            frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED
-        )
-        cv2.putText(
-            frame,
-            name,
-            (left + 6, bottom - 6),
-            cv2.FONT_HERSHEY_DUPLEX,
-            0.75,
-            (255, 255, 255),
-            1,
-        )
+        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+        cv2.putText(frame, name, (left + 6, bottom - 6),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.75, (255, 255, 255), 1)
 
     cv2.imshow("Face Recognition", frame)
 
