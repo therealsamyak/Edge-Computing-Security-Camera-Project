@@ -1,1 +1,3 @@
 face_recognition
+dlib version 19.24
+numpy version 1.23.5
