@@ -26,6 +26,16 @@ docker build -t security-backend .
 docker run --rm -it security-backend
 ```
 
-## Frontend
+## Cloud Server
 
-testing2
+USE LINUX OR WSL TO RUN THIS. DOCKER NEEDS TO BE INSTALLED.
+
+- ON WINDOWS, MAKE SURE DOCKER DESKTOP IS RUNNING IN THE BACKGROUND.
+
+<br/>
+
+```shell
+cd server
+docker build -t security-server .
+docker run --rm -it security-server
+```
