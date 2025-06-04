@@ -11,11 +11,12 @@ RUN apt-get update && \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 
-RUN uv pip install --system --upgrade pip setuptools wheel && \
-  uv pip install --system face_recognition
-
 WORKDIR /app
+COPY requirements.txt /app/
 COPY . /app
+
+RUN uv pip install --system --upgrade pip setuptools wheel && \
+  uv pip install --system --no-cache-dir -r requirements.txt
 
 ENV PYTHONUNBUFFERED=1
 
