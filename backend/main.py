@@ -71,7 +71,7 @@ while True:
     small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
     rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-    if process_this_frame >= 30:
+    if process_this_frame >= 60:
         process_this_frame = 0
         face_locations = face_recognition.face_locations(rgb_small_frame)
         face_encodings = face_recognition.face_encodings(
@@ -136,27 +136,27 @@ while True:
             print(f"⚠️ Supabase insert failed for {person_id}: {e}")
 
     # Draw boxes and labels on the original frame
-    for (top, right, bottom, left), name in zip(face_locations, face_names):
-        top *= 4
-        right *= 4
-        bottom *= 4
-        left *= 4
+    # for (top, right, bottom, left), name in zip(face_locations, face_names):
+    #     top *= 4
+    #     right *= 4
+    #     bottom *= 4
+    #     left *= 4
 
-        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-        cv2.rectangle(
-            frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED
-        )
-        cv2.putText(
-            frame,
-            name,
-            (left + 6, bottom - 6),
-            cv2.FONT_HERSHEY_DUPLEX,
-            0.75,
-            (255, 255, 255),
-            1,
-        )
+    #     cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+    #     cv2.rectangle(
+    #         frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED
+    #     )
+    #     cv2.putText(
+    #         frame,
+    #         name,
+    #         (left + 6, bottom - 6),
+    #         cv2.FONT_HERSHEY_DUPLEX,
+    #         0.75,
+    #         (255, 255, 255),
+    #         1,
+    #     )
 
-    cv2.imshow("Face Recognition", frame)
+    # cv2.imshow("Face Recognition", frame)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
