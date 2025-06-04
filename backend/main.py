@@ -134,22 +134,19 @@ while True:
                 print(f"[✓] Updated snapshot for {matched_name}")
 
             face_names.append(name)
+            
+        for name in face_names:
+            if name.startswith("unknown_"):
+                person_id = name
+            else:
+                person_id = name.split()[-1].lower()
+            data = {"id": person_id, "location": location_label}
+            try:
+                supabase.table("security_system").insert(data).execute()
+            except Exception as e:
+                print(f"⚠️ Supabase insert failed for {person_id}: {e}")
 
-        # Insert to Supabase with cooldown
-        current_time = time.time()
-        if face_names and (current_time - last_supabase_insert >= 10):
-            last_supabase_insert = current_time
-            for name in face_names:
-                if name.startswith("unknown_"):
-                    person_id = name
-                else:
-                    person_id = name.split()[-1].lower()
-                data = {"id": person_id, "location": location_label}
-                try:
-                    supabase.table("security_system").insert(data).execute()
-                except Exception as e:
-                    print(f"⚠️ Supabase insert failed for {person_id}: {e}")
-
+        
     process_this_frame += 1
 
     # Draw boxes and labels
